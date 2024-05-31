@@ -10,14 +10,32 @@ const { Op } = require("sequelize");
 router.get('/', async (req, res, next) => {
     let errorResult = { errors: [], count: 0, pageCount: 0 };
 
-    // Phase 2A: Use query params for page & size
-    // Your code here
+    let page = req.query.page;
 
-    // Phase 2B: Calculate limit and offset
-    // Phase 2B (optional): Special case to return all students (page=0, size=0)
-    // Phase 2B: Add an error message to errorResult.errors of
-        // 'Requires valid page and size params' when page or size is invalid
-    // Your code here
+    if(page === '0'){
+        page = null;
+    }else if(page === undefined){
+        page = 1;
+    }else{
+        page = parseInt(page)
+    }
+
+    let size = req.query.size;
+
+    if(size === '0'){
+        size = null;
+    }else if(size === undefined){
+        size = 10;
+    }else{
+        size = parseInt(size)
+    }
+
+
+    if(String(size) === 'NaN' || String(page) === 'NaN'){
+        errorResult.errors.push({message: 'Requires valid page and size params'});
+    }
+
+    const offset = size * (page - 1)
 
     // Phase 4: Student Search Filters
     /*
@@ -47,7 +65,6 @@ router.get('/', async (req, res, next) => {
     // Your code here
 
 
-    // Phase 2C: Handle invalid params with "Bad Request" response
     // Phase 3C: Include total student count in the response even if params were
         // invalid
         /*
@@ -63,6 +80,10 @@ router.get('/', async (req, res, next) => {
                 }
         */
     // Your code here
+    if(errorResult.errors.length > 0){
+        res.statusCode = 400;
+        res.send(errorResult)
+    }
 
     let result = {};
 
@@ -73,21 +94,12 @@ router.get('/', async (req, res, next) => {
     result.rows = await Student.findAll({
         attributes: ['id', 'firstName', 'lastName', 'leftHanded'],
         where,
-        order: [['lastName'],['firstName']]
+        order: [['lastName'],['firstName']],
+        limit: size,
+        offset
     });
-
-    // Phase 2E: Include the page number as a key of page in the response data
-        // In the special case (page=0, size=0) that returns all students, set
-            // page to 1
-        /*
-            Response should be formatted to look like this:
-            {
-                rows: [{ id... }] // query results,
-                page: 1
-            }
-        */
-    // Your code here
-
+    result.page = page || 1;
+   
     // Phase 3B:
         // Include the total number of available pages for this query as a key
             // of pageCount in the response data
