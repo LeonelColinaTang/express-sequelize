@@ -41,7 +41,7 @@ router.get('/', async (req, res, next) => {
     const classrooms = await Classroom.findAll({
         attributes: [ 'id', 'name', 'studentLimit' ],
         where,
-        // Phase 1B: Order the Classroom search results
+        order: [['name']]
     });
 
     res.json(classrooms);
