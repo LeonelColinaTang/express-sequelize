@@ -5,6 +5,7 @@ const router = express.Router();
 // Import model(s)
 const { Classroom, Supply, StudentClassroom } = require('../db/models');
 const { Op, Sequelize } = require('sequelize');
+const studentclassroom = require('../db/models/studentclassroom');
 
 // List of classrooms
 router.get('/', async (req, res, next) => {
@@ -96,6 +97,12 @@ router.get('/:id', async (req, res, next) => {
             classroomId: req.params.id
         }
     })
+
+    classroom.dataValues.avgGrade = await StudentClassroom.sum('grade',{
+        where:{
+            classroomId: req.params.id
+        }
+    })/classroom.dataValues.studentCount;
 
     classroom.dataValues.overloaded = classroom.dataValues.studentCount > classroom.dataValues.studentLimit
     
