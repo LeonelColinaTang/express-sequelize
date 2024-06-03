@@ -12,32 +12,35 @@ router.get('/', async (req, res, next) => {
     let errorResult = { errors: [], count: 0, pageCount: 0 };
 
     // Phase 6B: Classroom Search Filters
-    /*
-        name filter:
-            If the name query parameter exists, set the name query
-                filter to find a similar match to the name query parameter.
-            For example, if name query parameter is 'Ms.', then the
-                query should match with classrooms whose name includes 'Ms.'
 
-        studentLimit filter:
-            If the studentLimit query parameter includes a comma
-                And if the studentLimit query parameter is two numbers separated
-                    by a comma, set the studentLimit query filter to be between
-                    the first number (min) and the second number (max)
-                But if the studentLimit query parameter is NOT two integers
-                    separated by a comma, or if min is greater than max, add an
-                    error message of 'Student Limit should be two integers:
-                    min,max' to errorResult.errors
-            If the studentLimit query parameter has no commas
-                And if the studentLimit query parameter is a single integer, set
-                    the studentLimit query parameter to equal the number
-                But if the studentLimit query parameter is NOT an integer, add
-                    an error message of 'Student Limit should be a integer' to
-                    errorResult.errors 
-    */
     const where = {};
 
-    // Your code here
+    // name filter:      
+    if(req.query.name){
+        where.name = {[Op.substring] : req.query.name}
+    }
+
+
+    let limit = req.query.studentLimit;
+    if(limit){
+        limit = limit.split(",");
+        console.log("LIMIT", parseInt(limit[0]))
+        if(limit.length === 2 && Number(limit[0]) > Number(limit[1])){
+            console.log("HIT")
+            errorResult.errors.push({message: 'Student Limit should be two numbers: min, max'})
+        }else if(limit.length === 2 && limit[0] < limit[1]){
+            //WHERE limit BETWEEN min AND max
+            console.log("Souldn't be hit")
+            where.studentLimit = {[Op.between]: [limit[0],limit[1]]}
+        }else if(limit.length === 1){
+            //WHERE limit == limit
+            where.studentLimit = {[Op.eq] : limit[0]}
+        }
+    }
+
+    if(errorResult.errors.length > 0){
+        res.send(errorResult)
+    }
 
     const classrooms = await Classroom.findAll({
         attributes: [ 'id', 'name', 'studentLimit' ],
@@ -66,18 +69,7 @@ router.get('/:id', async (req, res, next) => {
         res.send({ message: 'Classroom Not Found' });
     }
 
-    // Phase 5: Supply and Student counts, Overloaded classroom
-        // Phase 5A: Find the number of supplies the classroom has and set it as
-            // a property of supplyCount on the response
-        // Phase 5B: Find the number of students in the classroom and set it as
-            // a property of studentCount on the response
-        // Phase 5C: Calculate if the classroom is overloaded by comparing the
-            // studentLimit of the classroom to the number of students in the
-            // classroom
-        // Optional Phase 5D: Calculate the average grade of the classroom 
-    // Your code here
     classroom.toJSON();
-    console.log("CLASSROOM", classroom);
 
     // classroom.dataValues.supplyCount = await Supply.findAll({attributes:{
     //     include: [[Sequelize.fn("COUNT", Sequelize.col("id")),"supplyCount"]]
@@ -85,6 +77,7 @@ router.get('/:id', async (req, res, next) => {
     //     classroomId: req.params.id
     // }}).then(res => res[0].dataValues.supplyCount);
     // console.log("CLASSROOM2", classroom);
+
 
     classroom.dataValues.supplyCount = await Supply.count({
         where:{
